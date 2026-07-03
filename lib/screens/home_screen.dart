@@ -28,14 +28,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final filteredTasks = ref.watch(filteredTasksProvider);
     final currentFilter = ref.watch(filterTypeProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Riverpod Tasks'),
-        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_sweep),
+            icon: const Icon(Icons.delete_sweep_rounded),
             tooltip: 'Limpiar completadas',
             onPressed: () {
               final taskState = ref.read(taskProvider);
@@ -44,6 +44,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ref.read(taskProvider.notifier).deleteTask(task.id);
                 }
               }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Tareas completadas eliminadas')),
+              );
             },
           ),
         ],
@@ -56,20 +59,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               controller: _searchCtrl,
               decoration: InputDecoration(
                 hintText: 'Buscar tareas...',
-                prefixIcon: const Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear_rounded),
                         onPressed: () {
                           _searchCtrl.clear();
                           ref.read(searchQueryProvider.notifier).state = '';
+                          setState(() {});
                         },
                       )
                     : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
               onChanged: (value) {
                 ref.read(searchQueryProvider.notifier).state = value;
@@ -79,7 +79,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           const StatsGrid(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -87,9 +87,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   final isSelected = currentFilter == filter;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
+                    child: ChoiceChip(
                       label: Text(_filterLabel(filter)),
                       selected: isSelected,
+                      selectedColor: theme.colorScheme.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      ),
                       onSelected: (_) {
                         ref.read(filterTypeProvider.notifier).state = filter;
                       },
@@ -99,30 +104,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
           Expanded(
             child: filteredTasks.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.inbox_outlined, size: 64, color: Colors.grey[300]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay tareas',
-                          style: TextStyle(fontSize: 18, color: Colors.grey[400]),
-                        ),
-                        Text(
-                          currentFilter != FilterType.all
-                              ? 'Prueba con otro filtro'
-                              : 'Agrega tu primera tarea',
-                          style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withAlpha(10),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.inbox_rounded,
+                              size: 48,
+                              color: theme.colorScheme.primary.withAlpha(80),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            'No hay tareas',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface.withAlpha(150),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            currentFilter != FilterType.all
+                                ? 'Prueba con otro filtro'
+                                : 'Agrega tu primera tarea',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withAlpha(100),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.only(top: 8, bottom: 80),
+                    padding: const EdgeInsets.only(top: 4, bottom: 88),
                     itemCount: filteredTasks.length,
                     itemBuilder: (context, index) {
                       return TaskCard(task: filteredTasks[index]);
@@ -132,11 +156,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-        ),
-        icon: const Icon(Icons.add),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+          );
+        },
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Nueva tarea'),
       ),
     );
