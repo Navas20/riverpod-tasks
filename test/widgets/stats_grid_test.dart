@@ -31,7 +31,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
 
     expect(find.text('3'), findsAtLeast(1));
     expect(find.text('0'), findsAtLeast(1));
@@ -53,7 +53,7 @@ void main() {
       ),
     );
 
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
 
     expect(find.text('1'), findsNWidgets(2));
     expect(find.text('0'), findsNWidgets(2));

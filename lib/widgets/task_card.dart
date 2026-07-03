@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 
@@ -26,9 +28,9 @@ class TaskCard extends ConsumerWidget {
     };
   }
 
-  Color _statusColor(TaskStatus status) {
+  Color? _statusColor(TaskStatus status) {
     return switch (status) {
-      TaskStatus.pending => Colors.grey.shade400,
+      TaskStatus.pending => null,
       TaskStatus.inProgress => const Color(0xFF8B5CF6),
       TaskStatus.completed => const Color(0xFF10B981),
     };
@@ -41,211 +43,183 @@ class TaskCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isCompleted = task.status == TaskStatus.completed;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _showTaskDetail(context, ref),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: () => ref.read(taskProvider.notifier).toggleStatus(task.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 28,
-                  height: 28,
-                  margin: const EdgeInsets.only(top: 2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: task.status == TaskStatus.completed
-                        ? const Color(0xFF10B981)
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: _statusColor(task.status),
-                      width: 2.5,
-                    ),
-                  ),
-                  child: task.status == TaskStatus.completed
-                      ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
-                      : task.status == TaskStatus.inProgress
-                          ? Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: _statusColor(task.status),
-                              ),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          _showTaskDetail(context, ref);
+        },
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 150),
+          tween: Tween(begin: 1, end: 1),
+          builder: (context, scale, child) {
+            return Transform.scale(scale: scale, child: child);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    ref.read(taskProvider.notifier).toggleStatus(task.id);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOutBack,
+                    width: 28,
+                    height: 28,
+                    margin: const EdgeInsets.only(top: 2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: isCompleted
+                          ? const LinearGradient(
+                              colors: [Color(0xFF10B981), Color(0xFF059669)],
                             )
                           : null,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            task.title,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              decoration: task.status == TaskStatus.completed
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                              color: task.status == TaskStatus.completed
-                                  ? theme.colorScheme.onSurface.withAlpha(120)
-                                  : theme.colorScheme.onSurface,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          padding: EdgeInsets.zero,
-                          iconSize: 20,
-                          color: Colors.white,
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: theme.colorScheme.outline),
-                          ),
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _showEditDialog(context, ref);
-                            } else if (value == 'delete') {
-                              ref.read(taskProvider.notifier).deleteTask(task.id);
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: ListTile(
-                                leading: Icon(Icons.edit_rounded, size: 20),
-                                title: Text('Editar'),
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: ListTile(
-                                leading: Icon(Icons.delete_rounded, size: 20, color: Color(0xFFEF4444)),
-                                title: Text('Eliminar', style: TextStyle(color: Color(0xFFEF4444))),
-                                dense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    if (task.description.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        task.description,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: theme.colorScheme.onSurface.withAlpha(150),
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      color: isCompleted ? null : Colors.transparent,
+                      border: Border.all(
+                        color: _statusColor(task.status) ?? colors.outline,
+                        width: 2.5,
                       ),
-                    ],
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withAlpha(15),
-                            borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: isCompleted
+                        ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                        : task.status == TaskStatus.inProgress
+                            ? Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: _statusColor(task.status),
+                                ),
+                              )
+                            : null,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 300),
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                decoration: isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: isCompleted
+                                    ? colors.onSurface.withAlpha(100)
+                                    : colors.onSurface,
+                                letterSpacing: -0.3,
+                              ),
+                              child: Text(task.title),
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(_categoryIcon(task.category), size: 12,
-                                  color: theme.colorScheme.primary),
-                              const SizedBox(width: 4),
-                              Text(
-                                _categoryLabel(task.category),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: theme.colorScheme.primary,
+                          PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            iconSize: 20,
+                            color: colors.surface,
+                            elevation: 8,
+                            shadowColor: colors.shadow,
+                            surfaceTintColor: colors.surfaceTint,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: colors.outline),
+                            ),
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showEditDialog(context, ref);
+                              } else if (value == 'delete') {
+                                HapticFeedback.mediumImpact();
+                                ref.read(taskProvider.notifier).deleteTask(task.id);
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: ListTile(
+                                  leading: Icon(Icons.edit_rounded, size: 20,
+                                      color: colors.primary),
+                                  title: Text('Editar',
+                                      style: GoogleFonts.poppins()),
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: ListTile(
+                                  leading: Icon(Icons.delete_rounded, size: 20,
+                                      color: colors.error),
+                                  title: Text('Eliminar',
+                                      style: GoogleFonts.poppins(
+                                          color: colors.error)),
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _priorityColor(task.priority).withAlpha(15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _priorityColor(task.priority),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                task.priority.name.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: _priorityColor(task.priority),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (task.dueDate != null) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.calendar_today_rounded, size: 12,
-                                    color: Colors.grey.shade500),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${task.dueDate!.day}/${task.dueDate!.month}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ],
+                      ),
+                      if (task.description.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 300),
+                          child: Text(
+                            task.description,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: colors.onSurface.withAlpha(150),
+                              height: 1.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
-                    ),
-                  ],
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _Tag(
+                            icon: _categoryIcon(task.category),
+                            label: _categoryLabel(task.category),
+                            color: colors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          _Tag(
+                            icon: Icons.circle_rounded,
+                            label: task.priority.name.toUpperCase(),
+                            color: _priorityColor(task.priority),
+                            isDot: true,
+                          ),
+                          if (task.dueDate != null) ...[
+                            const SizedBox(width: 6),
+                            _Tag(
+                              icon: Icons.calendar_today_rounded,
+                              label: '${task.dueDate!.day}/${task.dueDate!.month}',
+                              color: colors.onSurface.withAlpha(120),
+                              isSubtle: true,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -254,14 +228,15 @@ class TaskCard extends ConsumerWidget {
 
   void _showTaskDetail(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,36 +246,42 @@ class TaskCard extends ConsumerWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: colors.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
                     task.title,
-                    style: theme.textTheme.headlineSmall?.copyWith(
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.5,
                     ),
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                const SizedBox(width: 12),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _statusColor(task.status).withAlpha(20),
+                    color: (_statusColor(task.status) ?? colors.outline).withAlpha(20),
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: (_statusColor(task.status) ?? colors.outline).withAlpha(50),
+                    ),
                   ),
                   child: Text(
                     task.status.name[0].toUpperCase() + task.status.name.substring(1),
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: _statusColor(task.status),
+                      color: _statusColor(task.status) ?? colors.onSurface,
                     ),
                   ),
                 ),
@@ -311,18 +292,25 @@ class TaskCard extends ConsumerWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _buildInfoChip(_categoryIcon(task.category), _categoryLabel(task.category),
-                    theme.colorScheme.primary),
-                _buildInfoChip(Icons.flag_rounded, task.priority.name,
-                    _priorityColor(task.priority)),
+                _buildInfoChip(
+                  _categoryIcon(task.category),
+                  _categoryLabel(task.category),
+                  colors.primary,
+                ),
+                _buildInfoChip(
+                  Icons.flag_rounded,
+                  task.priority.name,
+                  _priorityColor(task.priority),
+                ),
               ],
             ),
             if (task.description.isNotEmpty) ...[
               const SizedBox(height: 20),
               Text(
                 task.description,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurface.withAlpha(180),
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  color: colors.onSurface.withAlpha(180),
                   height: 1.6,
                 ),
               ),
@@ -330,11 +318,15 @@ class TaskCard extends ConsumerWidget {
             const SizedBox(height: 20),
             Row(
               children: [
-                Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey.shade400),
+                Icon(Icons.calendar_today_rounded, size: 16,
+                    color: colors.onSurface.withAlpha(100)),
                 const SizedBox(width: 8),
                 Text(
-                  'Creada: ${task.createdAt.day}/${task.createdAt.month}/${task.createdAt.year}',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  'Creada: ${_formatDate(task.createdAt)}',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: colors.onSurface.withAlpha(100),
+                  ),
                 ),
               ],
             ),
@@ -342,11 +334,15 @@ class TaskCard extends ConsumerWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.event_rounded, size: 16, color: Colors.grey.shade400),
+                  Icon(Icons.event_rounded, size: 16,
+                      color: colors.onSurface.withAlpha(100)),
                   const SizedBox(width: 8),
                   Text(
-                    'Vence: ${task.dueDate!.day}/${task.dueDate!.month}/${task.dueDate!.year}',
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    'Vence: ${_formatDate(task.dueDate!)}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: colors.onSurface.withAlpha(100),
+                    ),
                   ),
                 ],
               ),
@@ -356,6 +352,10 @@ class TaskCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Widget _buildInfoChip(IconData icon, String label, Color color) {
@@ -371,8 +371,8 @@ class TaskCard extends ConsumerWidget {
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 6),
           Text(
-            label,
-            style: TextStyle(
+            label[0].toUpperCase() + label.substring(1),
+            style: GoogleFonts.poppins(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: color,
@@ -393,8 +393,8 @@ class TaskCard extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Editar tarea', style: TextStyle(fontWeight: FontWeight.w700)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text('Editar tarea', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -435,7 +435,7 @@ class TaskCard extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: Text('Cancelar', style: GoogleFonts.poppins()),
             ),
             FilledButton(
               onPressed: () {
@@ -449,10 +449,65 @@ class TaskCard extends ConsumerWidget {
                 );
                 Navigator.pop(ctx);
               },
-              child: const Text('Guardar'),
+              child: Text('Guardar', style: GoogleFonts.poppins()),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isDot;
+  final bool isSubtle;
+
+  const _Tag({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.isDot = false,
+    this.isSubtle = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSubtle
+            ? color.withAlpha(15)
+            : color.withAlpha(20),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isDot)
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+              ),
+            )
+          else
+            Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: isDot ? 0.5 : 0,
+            ),
+          ),
+        ],
       ),
     );
   }

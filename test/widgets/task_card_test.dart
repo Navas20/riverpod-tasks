@@ -85,8 +85,13 @@ void main() {
 
       await tester.pumpWidget(createTestApp(task));
 
-      final textWidget = tester.widget<Text>(find.text('Completed task'));
-      expect(textWidget.style?.decoration, TextDecoration.lineThrough);
+      final textFinder = find.text('Completed task');
+      final styleFinder = find.ancestor(
+        of: textFinder,
+        matching: find.byType(AnimatedDefaultTextStyle),
+      );
+      final styleWidget = tester.widget<AnimatedDefaultTextStyle>(styleFinder.first);
+      expect(styleWidget.style.decoration, TextDecoration.lineThrough);
     });
 
     testWidgets('tapping checkbox toggles status', (tester) async {

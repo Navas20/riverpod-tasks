@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 
@@ -28,6 +30,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -90,6 +93,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
               const SizedBox(height: 16),
               InkWell(
                 onTap: () async {
+                  HapticFeedback.selectionClick();
                   final date = await showDatePicker(
                     context: context,
                     initialDate: DateTime.now().add(const Duration(days: 1)),
@@ -97,7 +101,7 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                     builder: (context, child) => Theme(
                       data: theme.copyWith(
-                        colorScheme: theme.colorScheme,
+                        colorScheme: colors,
                       ),
                       child: child ?? const SizedBox.shrink(),
                     ),
@@ -116,10 +120,10 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
                     _dueDate != null
                         ? '${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'
                         : 'Seleccionar fecha',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: _dueDate != null
-                          ? theme.colorScheme.onSurface
-                          : theme.colorScheme.onSurface.withAlpha(120),
+                          ? colors.onSurface
+                          : colors.onSurface.withAlpha(120),
                     ),
                   ),
                 ),
@@ -139,6 +143,8 @@ class _AddTaskScreenState extends ConsumerState<AddTaskScreen> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+
+    HapticFeedback.mediumImpact();
 
     ref.read(taskProvider.notifier).addTask(
       title: _titleCtrl.text.trim(),
